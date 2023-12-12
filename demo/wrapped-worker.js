@@ -24,6 +24,7 @@ import { sqlite3Worker1Promiser } from '../index.mjs';
     logHtml('', 'Done initializing. Running demo...');
 
     let response;
+    let response2;
 
     response = await promiser('config-get', {});
     logHtml('', 'Running SQLite3 version', response.result.version.libVersion);
@@ -34,35 +35,26 @@ import { sqlite3Worker1Promiser } from '../index.mjs';
     const { dbId } = response;
     logHtml(
       '',
-      'OPFS is available, created persisted database at',
+      'Created persisted database at',
       response.result.filename.replace(/^file:(.*?)\?vfs=opfs/, '$1'),
     );
 
-    await promiser('exec', { dbId, sql: 'CREATE TABLE IF NOT EXISTS t(a,b)' });
-    logHtml('', 'Creating a table...');
-
-    logHtml('', 'Insert some data using exec()...');
-    for (let i = 20; i <= 25; ++i) {
-      await promiser('exec', {
-        dbId,
-        sql: 'INSERT INTO t(a,b) VALUES (?,?)',
-        bind: [i, i * 2],
-      });
-    }
-
-    logHtml('', 'Query data with exec()');
-    await promiser('exec', {
-      dbId,
-      sql: 'SELECT a FROM t ORDER BY a LIMIT 3',
-      callback: (result) => {
-        if (!result.row) {
-          return;
-        }
-        logHtml('', result.row);
-      },
+    response2 = await promiser('open', {
+      filename: 'file:worker-promiser-2.sqlite3?vfs=opfs',
     });
+    const { dbId: dbId2 } = response2;
+    logHtml(
+      '',
+      'Created another persisted database at',
+      response2.result.filename.replace(/^file:(.*?)\?vfs=opfs/, '$1'),
+    );
+
+    logHtml('', 'First dbId:', dbId);
+    logHtml('', 'Second dbId:', dbId2);
+    logHtml('', 'These should be different!');
 
     await promiser('close', { dbId });
+    await promiser('close', { dbId: dbId2 });
   } catch (err) {
     if (!(err instanceof Error)) {
       err = new Error(err.result.message);
